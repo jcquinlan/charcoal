@@ -1,4 +1,4 @@
-const varOne = '#333';
-const var_two = 'blue';
-let varThree = "rgb(0,255,255)"
-let breakpoint = 1991;
+export const varOne = '#333';
+export const var_two = 'blue';
+export let varThree = "rgb(0,255,255)"
+export let breakpoint = 1992;

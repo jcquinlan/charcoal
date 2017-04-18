@@ -8,7 +8,7 @@
     "charcoalDest": "test/_variables.scss"
   },
   "scripts": {
-    "charcoal": "node src/charcoal.js $npm_package_config_charcoalSrc"
+    "charcoal": "node src/charcoal.js $npm_package_config_charcoalSrc $npm_package_config_charcoalDest"
   },
   "author": "James Quinlan",
   "license": "MIT",
