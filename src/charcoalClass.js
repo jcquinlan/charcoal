@@ -1,7 +1,7 @@
-const fs          = require('fs');
-const emojic      = require('emojic');
-const colorIt     = require('color-it');
-const promiseWrap = require('./utility');
+const fs      = require('fs');
+const emojic  = require('emojic');
+const colorIt = require('color-it');
+const utility = require('./utility');
 
 class Charcoal {
     constructor(srcFile, destFile){
@@ -9,6 +9,7 @@ class Charcoal {
         this.destFile      = destFile;
         this.srcFileData   = null;
         this.destFileData  = null;
+        this.backupData    = null;
         this.jsRegex       = /(?:const|let|var){1} (\w+) = (?:'|")*((?:#*)[\w\(\),]+)(?:'|")*;*/i;
         this.scssRegex     = /\$(\w+): #*([\w\(\),]+);*/i;
         this.charcoalRegex = /\/+\*+\s*Charcoal Variables\s*\*+\/+/i;
@@ -16,12 +17,39 @@ class Charcoal {
 
 
     run() {
+        const { promiseWrap } = utility;
         const exists = promiseWrap(this.checkDestinationExists.bind(this))
+            .then(()     => promiseWrap(this.backupDestinationFile.bind(this)))
             .then(()     => promiseWrap(this.readDestinationFile.bind(this)))
             .then(()     => promiseWrap(this.readSourceFile.bind(this)))
             .then(()     => promiseWrap(this.writeToDestinationFile.bind(this)))
             .then(done   => this.handleComplete(done))
             .catch(error => this.handleError(error));
+    }
+
+    backupDestinationFile(resolve, reject){
+        // Load contents of the variable JS file
+        const file = fs.readFile(this.destFile, 'utf8', (error, data) => {
+            // If there is an error, reject it.
+            if(error) { 
+                reject(error);
+            } else {
+                this.backupData = data;
+                resolve();
+            }
+        });
+    }
+
+    restoreDestinationBackup(){
+        const lines = this.backupData.split('\n');
+        const logger = fs.createWriteStream(this.destFile)
+
+        // Write each variable passed in to the destFile, and format them as SCSS variables
+        this.backupData.forEach((line, index) => {
+            logger.write(`${ line }\n`);
+        });
+
+        resolve();
     }
 
 
@@ -100,6 +128,7 @@ class Charcoal {
 
 
     writeToDestinationFile(resolve, reject){
+        reject();
         const logger = fs.createWriteStream(this.destFile)
 
         // Write each variable passed in to the destFile, and format them as SCSS variables
@@ -108,24 +137,17 @@ class Charcoal {
         })
 
         this.srcFileData.forEach((variable, index) => {
-            logger.write(`${ this.generateSCSSVariableString(variable) }${ index === this.srcFileData.length - 1 ? '' : '\n' }`);
+            logger.write(`${ utility.generateSCSSVariableString(variable[1], variable[2]) }${ index === this.srcFileData.length - 1 ? '' : '\n' }`);
         });
 
         resolve();
     }
 
-
-    generateSCSSVariableString(regexCapture){
-        const name = regexCapture[1];
-        const value = regexCapture[2];
-
-        return `$${ name }: ${ value };`
-    }
-
-
     handleError(error){
-        console.log(`${ colorIt('Charcoal Error:').alizarin() }`)
-        console.log(`${ colorIt(error).alizarinBg() }`);
+        utility.promiseWrap(this.restoreDestinationBackup.bind(this)).then(() => {
+            console.log(`${ colorIt('Charcoal Error:').alizarin() }`)
+            console.log(`${ colorIt(error).alizarinBg() }`);
+        });
     }
 
 
