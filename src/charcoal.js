@@ -1,5 +1,5 @@
 const process = require('process');
-const Charcoal = require('./charcoalClass');
+const Charcoal = require('./class');
 
 const srcFile = process.argv[2];
 const destFile = process.argv[3];

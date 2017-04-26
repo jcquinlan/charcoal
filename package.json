@@ -5,10 +5,11 @@
   "main": "charcoal.js",
   "config": {
     "charcoalSrc": "test/vars.js",
-    "charcoalDest": "test/_variables.scss"
+    "charcoalDest": "_variables.scss"
   },
   "scripts": {
-    "charcoal": "node src/charcoal.js $npm_package_config_charcoalSrc $npm_package_config_charcoalDest"
+    "charcoal": "node src/charcoal.js $npm_package_config_charcoalSrc $npm_package_config_charcoalDest",
+    "charcoal:watch": "watch 'npm run charcoal' ./test"
   },
   "author": "James Quinlan",
   "license": "MIT",

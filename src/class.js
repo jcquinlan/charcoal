@@ -13,13 +13,12 @@ class Charcoal {
         this.jsRegex       = /(?:const|let|var){1} (\w+) = (?:'|")*((?:#*)[\w\(\),]+)(?:'|")*;*/i;
         this.scssRegex     = /\$(\w+): #*([\w\(\),]+);*/i;
         this.charcoalRegex = /\/+\*+\s*Charcoal Variables\s*\*+\/+/i;
+        this.destIsFragile = false;
     }
-
 
     run() {
         const { promiseWrap } = utility;
-        const exists = promiseWrap(this.checkDestinationExists.bind(this))
-            .then(()     => promiseWrap(this.backupDestinationFile.bind(this)))
+        const exists = promiseWrap(this.backupDestinationFile.bind(this))
             .then(()     => promiseWrap(this.readDestinationFile.bind(this)))
             .then(()     => promiseWrap(this.readSourceFile.bind(this)))
             .then(()     => promiseWrap(this.writeToDestinationFile.bind(this)))
@@ -31,7 +30,7 @@ class Charcoal {
         // Load contents of the variable JS file
         const file = fs.readFile(this.destFile, 'utf8', (error, data) => {
             // If there is an error, reject it.
-            if(error) { 
+            if(error) {
                 reject(error);
             } else {
                 this.backupData = data;
@@ -40,18 +39,17 @@ class Charcoal {
         });
     }
 
-    restoreDestinationBackup(){
+    restoreDestinationBackup(resolve, reject){
         const lines = this.backupData.split('\n');
         const logger = fs.createWriteStream(this.destFile)
 
         // Write each variable passed in to the destFile, and format them as SCSS variables
-        this.backupData.forEach((line, index) => {
-            logger.write(`${ line }\n`);
+        lines.forEach((line, index) => {
+            logger.write(`${ line }${ index != lines.length - 1 ? '\n' : '' }`);
         });
 
         resolve();
     }
-
 
     checkDestinationExists(resolve, reject) {
         fs.access(this.destFile, fs.constants.F_OK, (error) => {
@@ -59,7 +57,6 @@ class Charcoal {
             resolve();
         })
     }
-
 
     extractVariablesFromData(data){
         const lines = data.split('\n');
@@ -70,7 +67,6 @@ class Charcoal {
             return array;
         }, []);
     }
-
 
     // Keep track of all the current lines written in the destination file.
     // These will need to be rewritten when JS variables are updated.
@@ -98,7 +94,6 @@ class Charcoal {
         return destinationFileLines;
     }
 
-
     readDestinationFile(resolve, reject) {
         // Load contents of the variable JS file
         const file = fs.readFile(this.destFile, 'utf8', (error, data) => {
@@ -111,7 +106,6 @@ class Charcoal {
             }
         });
     }
-
 
     readSourceFile(resolve, reject) {
         // Load contents of the variable JS file
@@ -126,9 +120,7 @@ class Charcoal {
         });
     }
 
-
     writeToDestinationFile(resolve, reject){
-        reject();
         const logger = fs.createWriteStream(this.destFile)
 
         // Write each variable passed in to the destFile, and format them as SCSS variables
@@ -149,7 +141,6 @@ class Charcoal {
             console.log(`${ colorIt(error).alizarinBg() }`);
         });
     }
-
 
     handleComplete(){
         console.log(`${ colorIt('Charcoal copy completed.').greenBg() }`);
