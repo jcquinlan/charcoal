@@ -5,22 +5,25 @@
   "main": "charcoal.js",
   "config": {
     "charcoalSrc": "test/vars.js",
-    "charcoalDest": "_variables.scss"
+    "charcoalDest": "test/_variables.scss"
+  },
+  "watch": {
+    "charcoal": "test/vars.js"
   },
   "scripts": {
     "charcoal": "node src/charcoal.js $npm_package_config_charcoalSrc $npm_package_config_charcoalDest",
-    "charcoal:watch": "watch 'npm run charcoal' ./test"
+    "watch": "npm-watch"
   },
   "author": "James Quinlan",
   "license": "MIT",
   "dependencies": {
     "color-it": "^1.2.9",
-    "emojic": "^1.1.9"
+    "emojic": "^1.1.9",
+    "npm-watch": "^0.1.8"
   },
   "devDependencies": {
     "babel-core": "^6.24.1",
     "babel-loader": "^6.4.1",
-    "babel-preset-env": "^1.4.0",
-    "webpack": "^2.4.1"
+    "babel-preset-env": "^1.4.0"
   }
 }

@@ -20,6 +20,7 @@ class Charcoal {
         const { promiseWrap } = utility;
         const exists = promiseWrap(this.backupDestinationFile.bind(this))
             .then(()     => promiseWrap(this.readDestinationFile.bind(this)))
+            .then(data   => promiseWrap(this.extractNonCharcoalData.bind(this), data))
             .then(()     => promiseWrap(this.readSourceFile.bind(this)))
             .then(()     => promiseWrap(this.writeToDestinationFile.bind(this)))
             .then(done   => this.handleComplete(done))
@@ -29,7 +30,6 @@ class Charcoal {
     backupDestinationFile(resolve, reject){
         // Load contents of the variable JS file
         const file = fs.readFile(this.destFile, 'utf8', (error, data) => {
-            // If there is an error, reject it.
             if(error) {
                 reject(error);
             } else {
@@ -51,13 +51,6 @@ class Charcoal {
         resolve();
     }
 
-    checkDestinationExists(resolve, reject) {
-        fs.access(this.destFile, fs.constants.F_OK, (error) => {
-            if(error) reject(error);
-            resolve();
-        })
-    }
-
     extractVariablesFromData(data){
         const lines = data.split('\n');
 
@@ -70,28 +63,33 @@ class Charcoal {
 
     // Keep track of all the current lines written in the destination file.
     // These will need to be rewritten when JS variables are updated.
-    extractNonCharcoalData(data){
+    extractNonCharcoalData(resolve, reject, data){
         const lines = data.split('\n');
         let destinationFileLines = [];
-        let foundLine = false;
+        let foundCharcoalLine = false;
 
         for(let index = 0; index < lines.length; index++) {
             const line = lines[index];
 
-            if(foundLine) continue;
+            if(foundCharcoalLine) continue;
             if(line === '' && (index === lines.length - 1 || index === 0)) continue;
 
             const charcoalLine = line.match(this.charcoalRegex);
 
             if(charcoalLine) {
                 destinationFileLines.push(line);
-                foundLine = true;
+                foundCharcoalLine = true;
             } else {
                 destinationFileLines.push(line);
             }
         };
 
-        return destinationFileLines;
+        if(foundCharcoalLine){
+            this.destIsFragile = true;
+        }
+
+        this.destFileData = destinationFileLines;
+        resolve();
     }
 
     readDestinationFile(resolve, reject) {
@@ -101,8 +99,7 @@ class Charcoal {
             if(error) { 
                 reject(error);
             } else {
-                this.destFileData = this.extractNonCharcoalData(data);
-                resolve();
+                resolve(data);
             }
         });
     }
@@ -124,9 +121,11 @@ class Charcoal {
         const logger = fs.createWriteStream(this.destFile)
 
         // Write each variable passed in to the destFile, and format them as SCSS variables
-        this.destFileData.forEach((line, index) => {
-            logger.write(`${ line }\n`);
-        })
+        if(this.destIsFragile){
+            this.destFileData.forEach((line, index) => {
+                logger.write(`${ line }\n`);
+            });
+        }
 
         this.srcFileData.forEach((variable, index) => {
             logger.write(`${ utility.generateSCSSVariableString(variable[1], variable[2]) }${ index === this.srcFileData.length - 1 ? '' : '\n' }`);
