@@ -4,6 +4,9 @@ charcoal is an interface between JS variables and SCSS variables. It simply read
 ## Why?
 I created this because our project lacked a single source of truth for information like colors and breakpoints that could be used in JS inline styling (a common paradigm in React) and SCSS. On paper, a developer doesn't need both SCSS and inline styles, but we found use cases for both, so this tool provides that single source of truth.
 
+## Installation
+`npm install node-charcoal` or `yarn add node-charcoal`
+
 ## How to use it.
 There are two ways to use the tool, both are very simple.
 
