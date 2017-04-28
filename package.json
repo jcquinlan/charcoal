@@ -1,7 +1,13 @@
 {
-  "name": "charcoal",
+  "name": "node-charcoal",
   "version": "1.0.0",
   "description": "Shared JS/SCSS variables",
+  "licenses": [
+    { 
+      "type": "MIT",
+      "url": "https://www.opensource.org/licenses/mit-license.php"
+    }
+  ],
   "main": "charcoal.js",
   "config": {
     "charcoalSrc": "test/vars.js",
