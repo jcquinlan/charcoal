@@ -4,6 +4,11 @@ charcoal is an interface between JS variables and SCSS variables. It simply read
 ## Why?
 I created this because our project lacked a single source of truth for information like colors and breakpoints that could be used in JS inline styling (a common paradigm in React) and SCSS. On paper, a developer doesn't need both SCSS and inline styles, but we found use cases for both, so this tool provides that single source of truth.
 
+## Benefits
+Honestly, I just wanted something I could overlay onto my current styling paradigm. I didn't want to add a more complex tool, so charcoal exists independently of any other styling technologies. Obviously, charcoal is currently limited to use with SCSS, since the variables are formatted as SCSS variables, but I don't see why that couldn't change.
+
+I really feel that this is the simplest way to get started with cross-language variables for web styling.
+
 ## Installation
 `npm install node-charcoal` or `yarn add node-charcoal`
 
