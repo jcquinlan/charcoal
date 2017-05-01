@@ -9,7 +9,6 @@ class Charcoal {
         this.destFile      = destFile;
         this.srcFileData   = null;
         this.destFileData  = null;
-        this.srcBackup     = null;
         this.destBackup    = null;
         this.jsRegex       = /(?:const|let|var){1} (\w+) = (?:'|")*((?:#*)[\w\(\),]+)(?:'|")*;*/i;
         this.scssRegex     = /\$(\w+): #*([\w\(\),]+);*/i;
@@ -20,10 +19,10 @@ class Charcoal {
     run() {
         const { promiseWrap } = utility;
         const exists = promiseWrap(this.backupFile.bind(this), this.destFile, 'destBackup')
-            .then(()     => promiseWrap(this.backupFile.bind(this), this.srcFile, 'srcBackup'))
             .then(()     => promiseWrap(this.readDestinationFile.bind(this)))
             .then(data   => promiseWrap(this.extractNonCharcoalData.bind(this), data))
             .then(()     => promiseWrap(this.readSourceFile.bind(this)))
+            .then(data   => promiseWrap(this.extractVariablesFromData.bind(this), data))
             .then(()     => promiseWrap(this.writeToDestinationFile.bind(this)))
             .then(done   => this.handleComplete(done))
             .catch(error => this.handleError(error));
@@ -53,7 +52,7 @@ class Charcoal {
         resolve();
     }
 
-    extractVariablesFromData(data){
+    extractVariablesFromData(resolve, reject, data){
         const lines = data.split('\n');
         let sourceVariables = [];
         let foundCharcoalLine = false;
@@ -74,7 +73,8 @@ class Charcoal {
             }
         }
 
-        return sourceVariables; 
+        this.srcFileData = sourceVariables;
+        resolve();
     }
 
     // Keep track of all the current lines written in the destination file.
@@ -127,8 +127,7 @@ class Charcoal {
             if(error) { 
                 reject(error);
             } else {
-                this.srcFileData = this.extractVariablesFromData(data);
-                resolve();
+                resolve(data);
             }
         });
     }
