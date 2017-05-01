@@ -9,7 +9,7 @@ class Charcoal {
         this.destFile      = destFile;
         this.srcFileData   = null;
         this.destFileData  = null;
-        this.backupData    = null;
+        this.destBackup    = null;
         this.jsRegex       = /(?:const|let|var){1} (\w+) = (?:'|")*((?:#*)[\w\(\),]+)(?:'|")*;*/i;
         this.scssRegex     = /\$(\w+): #*([\w\(\),]+);*/i;
         this.charcoalRegex = /\/+\*+\s*Charcoal Variables\s*\*+\/+/i;
@@ -18,29 +18,30 @@ class Charcoal {
 
     run() {
         const { promiseWrap } = utility;
-        const exists = promiseWrap(this.backupDestinationFile.bind(this))
+        const exists = promiseWrap(this.backupFile.bind(this), this.destFile, 'destBackup')
             .then(()     => promiseWrap(this.readDestinationFile.bind(this)))
             .then(data   => promiseWrap(this.extractNonCharcoalData.bind(this), data))
             .then(()     => promiseWrap(this.readSourceFile.bind(this)))
+            .then(data   => promiseWrap(this.extractVariablesFromData.bind(this), data))
             .then(()     => promiseWrap(this.writeToDestinationFile.bind(this)))
             .then(done   => this.handleComplete(done))
             .catch(error => this.handleError(error));
     }
 
-    backupDestinationFile(resolve, reject){
+    backupFile(resolve, reject, filePath, dataName){
         // Load contents of the variable JS file
-        const file = fs.readFile(this.destFile, 'utf8', (error, data) => {
+        const file = fs.readFile(filePath, 'utf8', (error, data) => {
             if(error) {
                 reject(error);
             } else {
-                this.backupData = data;
+                this[dataName] = data;
                 resolve();
             }
         });
     }
 
     restoreDestinationBackup(resolve, reject){
-        const lines = this.backupData.split('\n');
+        const lines = this.destBackup.split('\n');
         const logger = fs.createWriteStream(this.destFile)
 
         // Write each variable passed in to the destFile, and format them as SCSS variables
@@ -51,14 +52,29 @@ class Charcoal {
         resolve();
     }
 
-    extractVariablesFromData(data){
+    extractVariablesFromData(resolve, reject, data){
         const lines = data.split('\n');
+        let sourceVariables = [];
+        let foundCharcoalLine = false;
 
-       return lines.reduce((array, line) => {
+        for( let i = 0; i < lines.length; i++){
+            const line = lines[i];
             const variable = line.match(this.jsRegex);
-            if(variable) array.push(variable);
-            return array;
-        }, []);
+            if(variable) sourceVariables.push(variable);
+
+            const charcoalLine = line.match(this.charcoalRegex);
+            if(charcoalLine){
+                if(foundCharcoalLine) reject('Source file contains multiple "/* charcoal variable */ lines. This is not allowed.');
+                // sourceVariables is set to an empty array because we assume at the start that all variables will be translated into SCSS variables.
+                // But if we find a line denoting the start of our charcoal variables, that means anything prior to that is not needed.
+                // This only works assuming all variables below the special charcoal line need to translated.
+                sourceVariables = [];
+                foundCharcoalLine = true;
+            }
+        }
+
+        this.srcFileData = sourceVariables;
+        resolve();
     }
 
     // Keep track of all the current lines written in the destination file.
@@ -111,8 +127,7 @@ class Charcoal {
             if(error) { 
                 reject(error);
             } else {
-                this.srcFileData = this.extractVariablesFromData(data);
-                resolve();
+                resolve(data);
             }
         });
     }
